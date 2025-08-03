@@ -1,14 +1,24 @@
-import { useRecipeStore } from '../store/recipeStore';
+// src/components/SearchBar.jsx
+import { useRecipeStore } from '../recipeStore';
+import { useEffect } from 'react';
 
 const SearchBar = () => {
   const setSearchTerm = useRecipeStore((state) => state.setSearchTerm);
+  const filterRecipes = useRecipeStore((state) => state.filterRecipes);
+
+  const handleChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  useEffect(() => {
+    filterRecipes();
+  }, [filterRecipes]);
 
   return (
     <input
       type="text"
-      placeholder="Search recipes by title..."
-      onChange={(e) => setSearchTerm(e.target.value)}
-      style={{ padding: '10px', width: '100%', marginBottom: '20px' }}
+      placeholder="Search recipes..."
+      onChange={handleChange}
     />
   );
 };
