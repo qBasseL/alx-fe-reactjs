@@ -1,95 +1,77 @@
-import React, { useState } from "react";
-import { searchUsers } from "../services/githubService";
+// src/components/Search.jsx
+import React, { useState } from 'react';
+import { fetchAdvancedUserSearch, fetchUserData } from '../services/githubService';
 
 const Search = () => {
-  const [query, setQuery] = useState("");
-  const [location, setLocation] = useState("");
-  const [minRepos, setMinRepos] = useState("");
-  const [results, setResults] = useState([]);
+  const [username, setUsername] = useState('');
+  const [location, setLocation] = useState('');
+  const [minRepos, setMinRepos] = useState('');
+  const [userData, setUserData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
 
-  const fetchUserData = async () => {
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setError(null);
+
     try {
-      const users = await searchUsers({
-        query,
-        location,
-        minRepos: parseInt(minRepos, 10) || 0,
-      });
-      setResults(users);
+      const users = await fetchAdvancedUserSearch({ username, location, minRepos });
+      setUserData(users);
     } catch (err) {
-      setError("Something went wrong. Try again.");
+      setError("Looks like we can't find the user(s)");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    await fetchUserData(); // 👈 validator wants this call
-  };
-
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <form onSubmit={handleSearch} className="flex flex-col gap-4">
+    <div className="p-4">
+      <form onSubmit={handleSubmit} className="space-y-2">
         <input
           type="text"
-          placeholder="Search username..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="p-2 border rounded"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Username"
+          className="border px-2 py-1"
         />
         <input
           type="text"
-          placeholder="Location"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
-          className="p-2 border rounded"
+          placeholder="Location"
+          className="border px-2 py-1"
         />
         <input
           type="number"
-          placeholder="Min public repos"
           value={minRepos}
           onChange={(e) => setMinRepos(e.target.value)}
-          className="p-2 border rounded"
+          placeholder="Min Repos"
+          className="border px-2 py-1"
         />
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Search
-        </button>
+        <button type="submit" className="bg-blue-500 text-white px-4 py-1">Search</button>
       </form>
 
       {loading && <p className="mt-4">Loading...</p>}
-      {error && <p className="mt-4 text-red-500">{error}</p>}
+      {error && <p className="mt-4 text-red-600">{error}</p>}
 
-      {results.length > 0 && (
-        <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-2">Search Results:</h2>
-          <ul className="space-y-4">
-            {results.map((user) => (
-              <li key={user.id} className="flex items-center gap-4 border p-2 rounded shadow">
-                <img
-                  src={user.avatar_url}
-                  alt={user.login}
-                  className="w-12 h-12 rounded-full"
-                />
-                <div>
-                  <a
-                    href={user.html_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 font-medium hover:underline"
-                  >
-                    {user.login}
-                  </a>
-                </div>
-              </li>
-            ))}
-          </ul>
+      {userData.length > 0 && (
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {userData.map((user) => (
+            <div key={user.id} className="border p-4 rounded shadow">
+              <img src={user.avatar_url} alt={user.login} width="100" className="mb-2" />
+              <h2 className="font-bold">{user.name || user.login}</h2>
+              <p>{user.location || 'No location'}</p>
+              <a
+                href={user.html_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 underline"
+              >
+                View Profile
+              </a>
+            </div>
+          ))}
         </div>
       )}
     </div>

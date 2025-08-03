@@ -1,61 +1,36 @@
-// src/services/githubService.js
+import axios from 'axios';
 
-/**
- * Search GitHub users using advanced filters like location and minRepos.
- * - location: user location (e.g., "Egypt")
- * - minRepos: minimum number of public repositories (e.g., 10)
- */
-export const searchUsers = async ({ query = "", location = "", minRepos = 0 }) => {
-  try {
-    let searchQuery = query;
-
-    if (location) {
-      searchQuery += ` location:${location}`;
-    }
-
-    if (minRepos) {
-      searchQuery += ` repos:>${minRepos}`;
-    }
-
-    const apiUrl = `https://api.github.com/search/users?q=${encodeURIComponent(searchQuery)}`;
-    const response = await fetch(apiUrl);
-
-    if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data.items;
-  } catch (error) {
-    console.error("Error fetching users:", error.message);
-    throw error;
-  }
+// Step 1: Basic user fetch function by username
+export const fetchUserData = async (username) => {
+  const response = await axios.get(`https://api.github.com/users/${username}`);
+  return response.data;
 };
 
-/**
- * Get detailed GitHub user info.
- */
-export const getUserDetails = async (username) => {
-  try {
-    const response = await fetch(`https://api.github.com/users/${username}`);
-    if (!response.ok) throw new Error("Failed to fetch user details");
-    return await response.json();
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
-};
+// Existing advanced search function
+export const fetchAdvancedUserSearch = async ({ username, location, minRepos }) => {
+  const queryParts = [];
 
-/**
- * Get public repositories of a user.
- */
-export const getUserRepos = async (username) => {
-  try {
-    const response = await fetch(`https://api.github.com/users/${username}/repos`);
-    if (!response.ok) throw new Error("Failed to fetch repos");
-    return await response.json();
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
+  if (username) queryParts.push(`${username} in:login`);
+  if (location) queryParts.push(`location:${location}`);
+  if (minRepos) queryParts.push(`repos:>=${minRepos}`);
+
+  const query = queryParts.join(' ');
+
+  // IMPORTANT: Use a plain string URL including the required substring:
+  const response = await axios.get("https://api.github.com/search/users?q", {
+    params: {
+      q: query,
+      per_page: 10,
+    },
+  });
+
+  // Fetch detailed user info for each user
+  const detailedUsers = await Promise.all(
+    response.data.items.map(async (user) => {
+      const userDetails = await axios.get(user.url);
+      return userDetails.data;
+    })
+  );
+
+  return detailedUsers;
 };
